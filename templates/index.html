@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>monitoring service</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">service panel</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Переключатель навигации">
+            <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="#">Home</a>
+                </li>
+                <li class="nav-item">
+                <a class="nav-link" href="#">Add server</a>
+                </li>
+            </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <form id="form">
+            <div class="mb-3">
+                <label class="form-label">Command:</label>
+                <input id="InputCommand" type="text" class="form-control">  
+            </div>
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary">Send</button>
+            </div>
+            <label class="form-label">Result:</label>
+            <div class="mb-3">
+                <div id="ResultField" class="text-wrap" style="display: flex; height: 8rem; border: 1px solid gainsboro;">
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7qPCqsdltbNJuaOe923+mo//f6V8Qbsw3" crossorigin="anonymous"></script> -->
+    <script type="text/javascript">
+        const log = console.log.bind(document);
+        const serverAddress = '127.0.0.1:10000';
+
+        const webSocketAddress = `ws://${serverAddress}/ws/${
+            Date.now().toString(36) + Math.random().toString(36).substr(2)
+        }`
+
+        const sendMessage = (socket, msg) => {
+            socket.send(JSON.stringify({
+                source: 'front',
+                message: msg
+            }));
+            log('Send to the server', msg);
+        }
+
+        const connectSocket = () => {
+            const socket = new WebSocket(webSocketAddress);
+    
+            socket.onclose = (event) => {
+                log('Socket is closed. Reconnect will be attempted in 1 second.', event.reason);
+                setTimeout(() => {
+                    connectSocket();
+                }, 1000);
+            };
+
+            socket.onerror = (error) => {
+                console.error('Socket encountered error: ', error.message, 'Closing socket');
+                socket.close();
+            };
+
+            socket.onmessage = (event) => {
+                log(event.data);
+                const resultElement = document.querySelector('#ResultField');
+                resultElement.textContent = event.data;
+            };
+
+            window.ws = socket;
+
+        }
+
+        const submitForm = document.getElementById('form');
+        submitForm.onsubmit = function(e) {
+            e.preventDefault();
+            sendMessage(ws, document.querySelector('#InputCommand')?.value);
+        };
+
+        connectSocket();
+
+    </script>
+</body>
+</html>
