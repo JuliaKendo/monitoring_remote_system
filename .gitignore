@@ -15,6 +15,7 @@ test*.py
 *.sh
 *.txt
 *.yaml
+*.ini
 !requirements.txt
 node_modules
 build

