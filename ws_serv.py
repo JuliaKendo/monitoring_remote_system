@@ -9,7 +9,7 @@ from collections import defaultdict
 logger = logging.getLogger('monitoring_remote_server')
 logging.basicConfig(
     filename='mrs.log',
-    filemode='w',
+    filemode='a',
     level=logging.DEBUG,
     format='%(asctime)s - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s'
 )

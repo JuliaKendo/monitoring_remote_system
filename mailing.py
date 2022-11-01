@@ -1,8 +1,18 @@
 import os
+import logging
 import smtplib
-import sys
+
 from configparser import ConfigParser
- 
+
+
+logger = logging.getLogger('monitoring_remote_server')
+logging.basicConfig(
+    filename='mrs.log',
+    filemode='a',
+    level=logging.DEBUG,
+    format='%(asctime)s - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s'
+)
+
  
 def send_email(subject, to_addr, body_text):
     """
@@ -16,8 +26,8 @@ def send_email(subject, to_addr, body_text):
         cfg = ConfigParser()
         cfg.read(config_path)
     else:
-        print("Config not found! Exiting!")
-        sys.exit(1)
+        logger.error("Mail config not found! Exiting!")
+        raise SystemExit("Mail config not found! Exiting!")
  
     host      = cfg.get("smtp", "server")
     from_addr = cfg.get("smtp", "from_addr")
@@ -31,11 +41,15 @@ def send_email(subject, to_addr, body_text):
         "",
         body_text
     ))
-    
-    server = smtplib.SMTP_SSL(host)
-    server.login(username, password)
-    server.sendmail(from_addr, [to_addr], BODY)
-    server.quit()
+
+    try:
+        server = smtplib.SMTP_SSL(host)
+        server.login(username, password)
+        server.sendmail(from_addr, [to_addr], BODY)
+        # server.sendmail(from_addr, [to_addr], msg)
+        server.quit()
+    except Exception as err:
+        logger.error(f'Error sending mail: {err}')
  
  
 if __name__ == "__main__":

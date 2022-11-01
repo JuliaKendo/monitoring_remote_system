@@ -4,7 +4,7 @@ import json
 import click
 import random
 import functools
-# import websockets
+import logging
 
 from configparser import ConfigParser
 from datetime import datetime, timedelta
@@ -14,19 +14,13 @@ from mailing import send_email
 from ws_client import handle_connection
 
 
-# def handle_connection(func):
-
-#     @functools.wraps(func)
-#     async def func_wrapped(url, **kwargs):
-#         while True:
-#             try:
-#                 async with websockets.connect(url) as ws:
-#                     await check_connection(ws)
-#                     await func(ws, kwargs)
-#             except: # noqa
-#                 raise SystemExit
-
-#     return func_wrapped
+logger = logging.getLogger('monitoring_remote_server')
+logging.basicConfig(
+    filename='mrs.log',
+    filemode='a',
+    level=logging.DEBUG,
+    format='%(asctime)s - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s'
+)
 
 
 async def mail_message(msg, to_addr, subject):
@@ -48,6 +42,7 @@ async def client(ws, params):
 
     commands = [cmd.replace('\n','').strip() for cmd in params['commands'].split(',')]
     if not commands:
+        logger.error("There are no commands! Exiting!")
         raise SystemExit("There are no commands! Exiting!")
 
     schedule = Scheduler()
@@ -67,8 +62,8 @@ async def client(ws, params):
 
 
 @click.command()
-@click.option('--host', default='localhost', help='server host, localhost by default')
-@click.option('--port', default=10000, help='server port, 10000 by default')
+@click.option('--host', default='95.31.50.174', help='server host, localhost by default')
+@click.option('--port', default=6675, help='server port, 10000 by default')
 def main(host, port):
 
     base_path = os.path.dirname(os.path.abspath(__file__))
@@ -78,6 +73,7 @@ def main(host, port):
         cfg = ConfigParser()
         cfg.read(config_path)
     else:
+        logger.error("Config not found! Exiting!")
         raise SystemExit("Config not found! Exiting!")
 
     asyncio.run(client(
