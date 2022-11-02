@@ -16,6 +16,8 @@ test*.py
 *.txt
 *.yaml
 *.ini
+.DS_Store
+examples/.DS_Store
 !requirements.txt
 node_modules
 build

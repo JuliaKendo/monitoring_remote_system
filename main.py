@@ -2,6 +2,7 @@ import os
 import asyncio
 import json
 import click
+import re
 import random
 import functools
 import logging
@@ -24,8 +25,9 @@ logging.basicConfig(
 
 
 async def mail_message(msg, to_addr, subject):
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, functools.partial(send_email, subject, to_addr, msg))
+    if not re.search(r'client connected', msg):
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, functools.partial(send_email, subject, to_addr, msg))
     
 
 async def handle_messages(ws, msg):
@@ -62,8 +64,8 @@ async def client(ws, params):
 
 
 @click.command()
-@click.option('--host', default='95.31.50.174', help='server host, localhost by default')
-@click.option('--port', default=6675, help='server port, 10000 by default')
+@click.option('--host', default='localhost', help='server host, localhost by default')
+@click.option('--port', default=10000, help='server port, 10000 by default')
 def main(host, port):
 
     base_path = os.path.dirname(os.path.abspath(__file__))

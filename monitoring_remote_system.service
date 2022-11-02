@@ -1,0 +1,13 @@
+[Unit]
+Description=Monitoring websocket server
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/opt/monitoring_remote_system/
+ExecStart=/usr/bin/python3 /opt/monitoring_remote_system/ws_serv.py --host 0.0.0.0
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

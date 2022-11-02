@@ -1,3 +1,4 @@
+import os
 import asyncio
 import datetime
 import logging
@@ -11,9 +12,10 @@ import websockets
 from websockets.exceptions import ConnectionClosedOK
 
 
+base_path = os.path.dirname(os.path.abspath(__file__))
 logger = logging.getLogger('monitoring_remote_server')
 logging.basicConfig(
-    filename='mrs.log',
+    filename=os.path.join(base_path, "mrs.log"),
     filemode='a',
     level=logging.DEBUG,
     format='%(asctime)s - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s'
@@ -26,6 +28,8 @@ def handle_connection(func):
     async def func_wrapped(url, **kwargs):
         connection_attempts = 0
         while True:
+            if connection_attempts:
+                logger.debug(f'connection attempts: {connection_attempts}')
             wait_connection = 60 if connection_attempts < 3 else 3600
             try:
                 async with websockets.connect(url) as ws:
@@ -102,6 +106,7 @@ async def client(ws, params={}):
 @click.option('--mfs', default=100, help='min free space in byte')
 @click.option('--id', help='computer name')
 def main(host, port, encoding, mfs, id):
+    logger.debug('start monitoring')
     asyncio.run(client(
         f'ws://{host}:{port}/ws/{int(datetime.datetime.now().timestamp())}{random.randint(10, 99)}',
         encoding = encoding,
