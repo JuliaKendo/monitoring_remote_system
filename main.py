@@ -7,21 +7,21 @@ import random
 import functools
 import logging
 
+from environs import Env
 from configparser import ConfigParser
 from datetime import datetime, timedelta
 from scheduler.asyncio import Scheduler
 
+from logger_lib import initialize_logger
 from mailing import send_email
 from ws_client import handle_connection
 
 
+env = Env()
+env.read_env()
+
 logger = logging.getLogger('monitoring_remote_server')
-logging.basicConfig(
-    filename='mrs.log',
-    filemode='a',
-    level=logging.DEBUG,
-    format='%(asctime)s - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s'
-)
+initialize_logger(logger, env.str('TG_LOG_TOKEN'), env.str('TG_CHAT_ID'))
 
 
 async def mail_message(msg, to_addr, subject):

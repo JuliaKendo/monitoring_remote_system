@@ -3,16 +3,18 @@ import json
 import click
 import logging
 
+from environs import Env
 from quart import Quart, render_template, websocket
 from collections import defaultdict
 
+from logger_lib import initialize_logger
+
+
+env = Env()
+env.read_env()
+
 logger = logging.getLogger('monitoring_remote_server')
-logging.basicConfig(
-    filename='mrs.log',
-    filemode='a',
-    level=logging.DEBUG,
-    format='%(asctime)s - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s'
-)
+initialize_logger(logger, env.str('TG_LOG_TOKEN'), env.str('TG_CHAT_ID'))
 
 clients = defaultdict()
 app = Quart(__name__)
@@ -38,7 +40,9 @@ async def receive_message(ws, queue):
             'receiver': get_receiver(decoded_data['source']),
             'message': decoded_data['message']
         })
-        logger.debug(f'get message: {decoded_data["message"]}')
+        logger.debug(
+            f'get message from {unique_ids if unique_ids else "empty id"}: {decoded_data["message"]}'
+        )
 
 
 async def send_message(unique_id, queue):
@@ -51,7 +55,7 @@ async def send_message(unique_id, queue):
             if client['type'] != received_data['receiver']:
                 continue
             await client['ws'].send(received_data['message'])
-            logger.debug(f'send message: {received_data["message"]}')
+            logger.debug(f'send message to {key if key else "empty id"}: {received_data["message"]}')
 
 
 @app.route("/")

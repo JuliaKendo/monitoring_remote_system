@@ -1,4 +1,3 @@
-import os
 import asyncio
 import datetime
 import logging
@@ -9,17 +8,17 @@ import random
 import subprocess
 import websockets
 
+from environs import Env
 from websockets.exceptions import ConnectionClosedOK
 
+from logger_lib import initialize_logger
 
-base_path = os.path.dirname(os.path.abspath(__file__))
+
+env = Env()
+env.read_env()
+
 logger = logging.getLogger('monitoring_remote_server')
-logging.basicConfig(
-    filename=os.path.join(base_path, "mrs.log"),
-    filemode='a',
-    level=logging.DEBUG,
-    format='%(asctime)s - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s'
-)
+initialize_logger(logger, env.str('TG_LOG_TOKEN'), env.str('TG_CHAT_ID'))
 
 
 def handle_connection(func):
@@ -29,7 +28,7 @@ def handle_connection(func):
         connection_attempts = 0
         while True:
             if connection_attempts:
-                logger.debug(f'connection attempts: {connection_attempts}')
+                logger.debug(f'connection attempts from {url}: {connection_attempts}')
             wait_connection = 60 if connection_attempts < 3 else 3600
             try:
                 async with websockets.connect(url) as ws:
@@ -37,12 +36,12 @@ def handle_connection(func):
                     await check_connection(ws)
                     await func(ws, kwargs)
             except (ConnectionRefusedError, ConnectionClosedOK) as err:
-                logger.error(f'error connection: {err}')
+                logger.error(f'error connection from {url}: {err}')
                 await asyncio.sleep(wait_connection)
                 connection_attempts += 1
                 continue
             except Exception as err: # noqa
-                logger.error(f'error connection to server: {err}')
+                logger.error(f'error connection from {url}: {err}')
                 await asyncio.sleep(wait_connection)
                 connection_attempts += 1
                 continue
@@ -57,7 +56,7 @@ async def check_connection(ws):
             'source': 'client', 'message': 'client connected'
         })
     )
-    logger.debug('client connected')
+    logger.debug(f'client {ws.path} connected')
 
 
 def handle_command(command):
@@ -78,19 +77,20 @@ async def client(ws, params={}):
             result, err = handle_command(command)
             
             if err:
-                logger.error(f'error run command: {err.decode(encoding=params["encoding"])}')
+                logger.error(f'{ws.path}: error run command: {err.decode(encoding=params["encoding"])}')
                 continue
             
             try:
                 decode_result = int(result.decode(encoding=params['encoding']))
             except Exception as err:
-                logger.error(f'error decode or convert result: {err}')
+                logger.error(f'{ws.path}: error decode or convert result: {err}')
                 continue
             
             if decode_result >= params['min_free_space']:
+                logger.debug(f'{ws.path}: no notify because there is enought disk space')
                 continue
 
-            logger.debug(f'result command: {decode_result}')
+            logger.debug(f'{ws.path} result command: {decode_result}')
             await ws.send(
                 json.dumps({
                     'source': 'client',
@@ -106,12 +106,10 @@ async def client(ws, params={}):
 @click.option('--mfs', default=100, help='min free space in byte')
 @click.option('--id', help='computer name')
 def main(host, port, encoding, mfs, id):
-    logger.debug('start monitoring')
+    url = f'ws://{host}:{port}/ws/{int(datetime.datetime.now().timestamp())}{random.randint(10, 99)}'
+    logger.debug(f'start monitoring {url}')
     asyncio.run(client(
-        f'ws://{host}:{port}/ws/{int(datetime.datetime.now().timestamp())}{random.randint(10, 99)}',
-        encoding = encoding,
-        min_free_space = mfs,
-        id = id
+        url, encoding = encoding, min_free_space = mfs, id = id
     ))
 
 

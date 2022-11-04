@@ -2,16 +2,17 @@ import os
 import logging
 import smtplib
 
+from environs import Env
 from configparser import ConfigParser
 
+from logger_lib import initialize_logger
+
+
+env = Env()
+env.read_env()
 
 logger = logging.getLogger('monitoring_remote_server')
-logging.basicConfig(
-    filename='mrs.log',
-    filemode='a',
-    level=logging.DEBUG,
-    format='%(asctime)s - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s'
-)
+initialize_logger(logger, env.str('TG_LOG_TOKEN'), env.str('TG_CHAT_ID'))
 
  
 def send_email(subject, to_addr, body_text):
@@ -46,7 +47,6 @@ def send_email(subject, to_addr, body_text):
         server = smtplib.SMTP_SSL(host)
         server.login(username, password)
         server.sendmail(from_addr, [to_addr], BODY)
-        # server.sendmail(from_addr, [to_addr], msg)
         server.quit()
     except Exception as err:
         logger.error(f'Error sending mail: {err}')
