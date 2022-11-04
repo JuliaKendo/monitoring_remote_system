@@ -1,5 +1,6 @@
 import logging
-import telegram
+# import telegram
+import requests
 
 
 class NotificationLogHandler(logging.Handler):
@@ -12,8 +13,16 @@ class NotificationLogHandler(logging.Handler):
     def emit(self, record):
         log_entry = self.format(record)
         if log_entry:
-            bot = telegram.Bot(token=self.token)
-            bot.sendMessage(chat_id=self.chat_id, text=log_entry)
+            # bot = telegram.Bot(token=self.token)
+            # bot.sendMessage(chat_id=self.chat_id, text=log_entry)
+            url = f"https://api.telegram.org/bot{self.token}/sendMessage"
+            params = {
+                "chat_id": self.chat_id,
+                "text": log_entry,
+            }
+            resp = requests.get(url, params=params)
+
+            resp.raise_for_status()
 
 
 def initialize_logger(logger, log_token, chat_id):
